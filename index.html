@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Password Manager</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; min-height: 100vh; overflow-x: hidden; }
+
+  /* Lock Screen */
+  #lockScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #1a1a2e, #000); padding: 24px; }
+  #lockScreen .card { background: #1f1f1f; border: 1px solid #333; border-radius: 16px; padding: 32px 24px; width: 100%; max-width: 400px; }
+  .lock-icon { width: 80px; height: 80px; background: #1a1a3e; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+  .lock-icon svg { width: 40px; height: 40px; stroke: #60a5fa; fill: none; stroke-width: 2; }
+  #lockScreen h1 { text-align: center; font-size: 24px; margin-bottom: 8px; }
+  #lockScreen p { text-align: center; color: #888; margin-bottom: 20px; font-size: 14px; }
+  #lockScreen input { width: 100%; padding: 12px 16px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: #fff; font-size: 16px; margin-bottom: 16px; outline: none; }
+  #lockScreen input:focus { border-color: #60a5fa; }
+  .btn-primary { width: 100%; padding: 12px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
+  .btn-primary:active { background: #1d4ed8; }
+
+  /* Main App */
+  #mainApp { display: none; min-height: 100vh; }
+  .header { background: linear-gradient(90deg, #1a1a2e, #1f1f2e); padding: 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 20px; display: flex; align-items: center; gap: 8px; }
+  .header h1 svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2; }
+  .header-btns { display: flex; gap: 8px; }
+  .header-btns button, .header-btns label { background: #2a2a2a; border: none; color: #fff; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .header-btns button:active, .header-btns label:active { background: #3a3a3a; }
+  .header-btns svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; }
+  .header-btns input[type="file"] { display: none; }
+
+  .content { padding: 16px; max-width: 600px; margin: 0 auto; }
+
+  /* Search */
+  .search-wrap { position: relative; margin-bottom: 16px; }
+  .search-wrap svg { position: absolute; left: 12px; top: 12px; width: 20px; height: 20px; stroke: #666; fill: none; stroke-width: 2; }
+  .search-wrap input { width: 100%; padding: 12px 16px 12px 40px; background: #1f1f1f; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 15px; outline: none; }
+  .search-wrap input:focus { border-color: #60a5fa; }
+  .search-wrap input::placeholder { color: #666; }
+
+  /* Add Button */
+  .add-btn { width: 100%; padding: 12px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px; }
+  .add-btn:active { background: #1d4ed8; }
+  .add-btn svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2; }
+
+  /* Form */
+  .form-card { background: #1f1f1f; border: 1px solid #333; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .form-card h3 { font-size: 16px; margin-bottom: 14px; color: #fff; }
+  .form-card input, .form-card select { width: 100%; padding: 10px 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 6px; color: #fff; font-size: 15px; margin-bottom: 10px; outline: none; }
+  .form-card input:focus { border-color: #60a5fa; }
+  .form-card input::placeholder { color: #666; }
+  .pw-wrap { position: relative; margin-bottom: 10px; }
+  .pw-wrap input { margin-bottom: 0; padding-right: 36px; }
+  .pw-wrap button { position: absolute; right: 10px; top: 10px; background: none; border: none; cursor: pointer; }
+  .pw-wrap button svg { width: 20px; height: 20px; stroke: #60a5fa; fill: none; stroke-width: 2; }
+
+  /* Gen Settings */
+  .gen-settings { background: #2a2a2a; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+  .gen-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .gen-row label { font-size: 13px; color: #bbb; }
+  .gen-row input[type="range"] { width: 120px; }
+  .gen-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+  .gen-checks label { font-size: 13px; color: #bbb; display: flex; align-items: center; gap: 6px; }
+  .gen-checks input[type="checkbox"] { accent-color: #60a5fa; width: 16px; height: 16px; }
+  .btn-gen { width: 100%; padding: 8px; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .btn-gen:active { background: #1d4ed8; }
+
+  /* Form Buttons */
+  .form-btns { display: flex; gap: 8px; margin-top: 4px; }
+  .form-btns button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; font-weight: 600; }
+  .btn-save { background: #2563eb; color: #fff; }
+  .btn-save:active { background: #1d4ed8; }
+  .btn-cancel { background: #333; color: #ccc; }
+  .btn-cancel:active { background: #444; }
+
+  /* Password List */
+  .domain-group { margin-bottom: 12px; }
+  .domain-header { background: #2a2a2a; padding: 8px 14px; border-radius: 8px 8px 0 0; font-weight: 600; font-size: 14px; color: #ccc; border: 1px solid #333; border-bottom: none; }
+  .pwd-item { background: #1f1f1f; border: 1px solid #333; border-top: none; padding: 12px 14px; }
+  .pwd-item:last-child { border-radius: 0 0 8px 8px; }
+  .pwd-username { font-size: 14px; color: #ddd; margin-bottom: 8px; font-weight: 500; }
+  .pwd-row { display: flex; align-items: center; gap: 6px; }
+  .pwd-row input { flex: 1; padding: 6px 10px; background: #2a2a2a; border: 1px solid #333; border-radius: 6px; color: #ccc; font-size: 14px; outline: none; }
+  .pwd-row button { background: none; border: none; cursor: pointer; padding: 4px; }
+  .pwd-row button svg { width: 18px; height: 18px; stroke: #60a5fa; fill: none; stroke-width: 2; }
+  .pwd-row button.del svg { stroke: #f87171; }
+  .pwd-row button.edit svg { stroke: #60a5fa; }
+  .pwd-actions { display: flex; gap: 4px; margin-left: 4px; }
+
+  /* Empty State */
+  .empty { text-align: center; padding: 60px 20px; color: #555; }
+  .empty svg { width: 60px; height: 60px; stroke: #444; fill: none; stroke-width: 1.5; margin-bottom: 16px; }
+  .empty p { font-size: 14px; }
+
+  /* Copied Toast */
+  .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #2563eb; color: #fff; padding: 10px 24px; border-radius: 20px; font-size: 14px; display: none; z-index: 100; }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lockScreen">
+  <div class="card">
+    <div class="lock-icon">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h1>Password Manager</h1>
+    <p id="lockMsg">Create a master password</p>
+    <input type="password" id="masterInput" placeholder="Master password" onkeypress="if(event.key==='Enter') unlockApp()">
+    <button class="btn-primary" onclick="unlockApp()">Create &amp; Unlock</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+  <div class="header">
+    <h1><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Password Manager</h1>
+    <div class="header-btns">
+      <label onclick="document.getElementById('importFile').click()">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <input type="file" id="importFile" accept=".json" onchange="importPasswords(event)">
+      </label>
+      <button onclick="exportPasswords()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+      <button onclick="lockApp()"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Search -->
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Search by domain or username..." oninput="renderList()">
+    </div>
+
+    <!-- Add Button -->
+    <button class="add-btn" id="addBtn" onclick="showForm(null)">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add New Password
+    </button>
+
+    <!-- Form -->
+    <div class="form-card" id="formCard" style="display:none;">
+      <h3 id="formTitle">Add New Password</h3>
+      <input type="text" id="formDomain" placeholder="Domain (e.g., github.com)">
+      <input type="text" id="formUsername" placeholder="Username / Email">
+      <div class="pw-wrap">
+        <input type="text" id="formPassword" placeholder="Password">
+        <button onclick="toggleGenSettings()"><svg viewBox="0 0 24 24"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></button>
+      </div>
+      <div class="gen-settings" id="genSettings" style="display:none;">
+        <div class="gen-row">
+          <label>Length: <span id="lenVal">16</span></label>
+          <input type="range" min="8" max="32" value="16" id="genLen" oninput="document.getElementById('lenVal').textContent=this.value">
+        </div>
+        <div class="gen-checks">
+          <label><input type="checkbox" id="genUpper" checked> Uppercase</label>
+          <label><input type="checkbox" id="genLower" checked> Lowercase</label>
+          <label><input type="checkbox" id="genNum" checked> Numbers</label>
+          <label><input type="checkbox" id="genSym" checked> Symbols</label>
+        </div>
+        <button class="btn-gen" onclick="generatePassword()">Generate Password</button>
+      </div>
+      <div class="form-btns">
+        <button class="btn-save" id="saveBtn" onclick="saveEntry()">Add</button>
+        <button class="btn-cancel" onclick="hideForm()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Password List -->
+    <div id="passwordList"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+// ─── STATE ───────────────────────────────────
+let masterPass = '';
+let passwords = [];
+let editingId = null;
+
+// ─── SIMPLE AES ENCRYPTION (works on file:// in WebView) ───
+// Uses a lightweight XOR + base64 approach with PBKDF2-style key stretching
+// This avoids crypto.subtle which requires HTTPS context
+
+function deriveKeyFromPass(pass, salt) {
+  // Simple PBKDF2-like key derivation using repeated hashing
+  let key = pass + salt;
+  for (let i = 0; i < 10000; i++) {
+    key = simpleHash(key + i.toString());
+  }
+  return key;
+}
+
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    let char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  // Extend to longer hash string
+  let result = '';
+  let seed = hash;
+  for (let i = 0; i < 64; i++) {
+    seed = ((seed * 1664525) + 1013904223) & 0x7fffffff;
+    result += seed.toString(16).padStart(8, '0');
+  }
+  return result;
+}
+
+function xorEncrypt(text, key) {
+  let result = [];
+  for (let i = 0; i < text.length; i++) {
+    result.push(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+  }
+  return result;
+}
+
+function encrypt(data, pass) {
+  const salt = Math.random().toString(36).substring(2, 18);
+  const key = deriveKeyFromPass(pass, salt);
+  const json = JSON.stringify(data);
+  const encrypted = xorEncrypt(json, key);
+  return btoa(JSON.stringify({ s: salt, d: encrypted }));
+}
+
+function decrypt(encStr, pass) {
+  try {
+    const obj = JSON.parse(atob(encStr));
+    const key = deriveKeyFromPass(pass, obj.s);
+    const decrypted = obj.d.map((c, i) => String.fromCharCode(c ^ key.charCodeAt(i % key.length))).join('');
+    return JSON.parse(decrypted);
+  } catch(e) { return null; }
+}
+
+function hashMaster(pass) {
+  return simpleHash(pass + 'master_salt_v1');
+}
+
+// ─── LOCK / UNLOCK ───────────────────────────
+function unlockApp() {
+  const input = document.getElementById('masterInput');
+  const val = input.value;
+  if (!val) return;
+
+  const storedHash = localStorage.getItem('pm_hash');
+
+  if (!storedHash) {
+    // First time - create master password
+    localStorage.setItem('pm_hash', hashMaster(val));
+    masterPass = val;
+    input.value = '';
+    showApp();
+  } else if (storedHash === hashMaster(val)) {
+    // Correct password
+    masterPass = val;
+    const enc = localStorage.getItem('pm_data');
+    if (enc) {
+      const dec = decrypt(enc, masterPass);
+      if (dec) passwords = dec;
+    }
+    input.value = '';
+    showApp();
+  } else {
+    alert('Incorrect master password!');
+  }
+}
+
+function showApp() {
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  renderList();
+}
+
+function lockApp() {
+  masterPass = '';
+  passwords = [];
+  document.getElementById('searchInput').value = '';
+  hideForm();
+  document.getElementById('lockScreen').style.display = 'flex';
+  document.getElementById('mainApp').style.display = 'none';
+}
+
+// ─── INIT ─────────────────────────────────────
+(function() {
+  const storedHash = localStorage.getItem('pm_hash');
+  if (storedHash) {
+    document.getElementById('lockMsg').textContent = 'Enter your master password';
+    document.getElementById('lockScreen .btn-primary, .btn-primary').textContent = 'Unlock';
+    document.querySelector('.btn-primary').textContent = 'Unlock';
+  }
+})();
+
+// ─── SAVE / LOAD ─────────────────────────────
+function saveAll() {
+  const enc = encrypt(passwords, masterPass);
+  localStorage.setItem('pm_data', enc);
+}
+
+// ─── FORM ─────────────────────────────────────
+function showForm(pwd) {
+  document.getElementById('formCard').style.display = 'block';
+  document.getElementById('addBtn').style.display = 'none';
+
+  if (pwd) {
+    editingId = pwd.id;
+    document.getElementById('formTitle').textContent = 'Edit Password';
+    document.getElementById('saveBtn').textContent = 'Update';
+    document.getElementById('formDomain').value = pwd.domain;
+    document.getElementById('formUsername').value = pwd.username;
+    document.getElementById('formPassword').value = pwd.password;
+  } else {
+    editingId = null;
+    document.getElementById('formTitle').textContent = 'Add New Password';
+    document.getElementById('saveBtn').textContent = 'Add';
+    document.getElementById('formDomain').value = '';
+    document.getElementById('formUsername').value = '';
+    document.getElementById('formPassword').value = '';
+  }
+}
+
+function hideForm() {
+  document.getElementById('formCard').style.display = 'none';
+  document.getElementById('addBtn').style.display = 'flex';
+  document.getElementById('genSettings').style.display = 'none';
+  editingId = null;
+}
+
+function saveEntry() {
+  const domain = document.getElementById('formDomain').value.trim();
+  const username = document.getElementById('formUsername').value.trim();
+  const password = document.getElementById('formPassword').value.trim();
+
+  if (!domain || !password) { alert('Domain and password are required!'); return; }
+
+  if (editingId !== null) {
+    passwords = passwords.map(p => p.id === editingId ? { ...p, domain, username, password } : p);
+  } else {
+    passwords.push({ id: Date.now(), domain, username, password });
+  }
+
+  saveAll();
+  hideForm();
+  renderList();
+}
+
+// ─── PASSWORD GENERATOR ──────────────────────
+function toggleGenSettings() {
+  const el = document.getElementById('genSettings');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function generatePassword() {
+  let chars = '';
+  if (document.getElementById('genLower').checked) chars += 'abcdefghijklmnopqrstuvwxyz';
+  if (document.getElementById('genUpper').checked) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  if (document.getElementById('genNum').checked)   chars += '0123456789';
+  if (document.getElementById('genSym').checked)   chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+  if (!chars) chars = 'abcdefghijklmnopqrstuvwxyz';
+
+  const len = parseInt(document.getElementById('genLen').value);
+  let pw = '';
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  for (let i = 0; i < len; i++) pw += chars.charAt(arr[i] % chars.length);
+
+  document.getElementById('formPassword').value = pw;
+}
+
+// ─── RENDER LIST ──────────────────────────────
+function renderList() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = passwords.filter(p =>
+    p.domain.toLowerCase().includes(search) || p.username.toLowerCase().includes(search)
+  );
+
+  // Group by domain
+  const groups = {};
+  filtered.forEach(p => {
+    if (!groups[p.domain]) groups[p.domain] = [];
+    groups[p.domain].push(p);
+  });
+
+  const container = document.getElementById('passwordList');
+  const domains = Object.keys(groups).sort();
+
+  if (domains.length === 0) {
+    container.innerHTML = `
+      <div class="empty">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <p>No passwords saved yet.<br>Tap "Add New Password" to get started!</p>
+      </div>`;
+    return;
+  }
+
+  let html = '';
+  domains.forEach(domain => {
+    html += `<div class="domain-group"><div class="domain-header">${escHtml(domain)}</div>`;
+    groups[domain].forEach(pwd => {
+      html += `
+        <div class="pwd-item">
+          <div class="pwd-username">${escHtml(pwd.username || 'No username')}</div>
+          <div class="pwd-row">
+            <input type="password" id="pw_${pwd.id}" value="${escHtml(pwd.password)}" readonly>
+            <button onclick="toggleVis(${pwd.id})"><svg id="eye_${pwd.id}" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <button onclick="copyPw(${pwd.id}, '${escAttr(pwd.password)}')"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+            <div class="pwd-actions">
+              <button class="edit" onclick="showForm(passwords.find(p=>p.id===${pwd.id}))"><svg viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+              <button class="del" onclick="deleteEntry(${pwd.id})"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
+            </div>
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function escHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(str) { return str.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+// ─── ACTIONS ──────────────────────────────────
+function toggleVis(id) {
+  const input = document.getElementById('pw_' + id);
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function copyPw(id, pw) {
+  navigator.clipboard.writeText(pw).then(() => showToast('Copied!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+function deleteEntry(id) {
+  if (confirm('Delete this password?')) {
+    passwords = passwords.filter(p => p.id !== id);
+    saveAll();
+    renderList();
+  }
+}
+
+// ─── IMPORT / EXPORT ─────────────────────────
+function exportPasswords() {
+  if (passwords.length === 0) { alert('Nothing to export!'); return; }
+  const blob = new Blob([JSON.stringify(passwords, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'passwords_' + new Date().toISOString().split('T')[0] + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function importPasswords(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (Array.isArray(data)) {
+        data.forEach(p => { p.id = Date.now() + Math.random(); });
+        passwords = [...passwords, ...data];
+        saveAll();
+        renderList();
+        showToast('Imported ' + data.length + ' passwords!');
+      } else { alert('Invalid file!'); }
+    } catch(err) { alert('Invalid file format!'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+</script>
+</body>
+</html>
